@@ -3,7 +3,6 @@
 .piolibdeps
 .clang_complete
 .gcc-flags.json
-src/config.h
 data/config.json
 data_
 .travis.yml
