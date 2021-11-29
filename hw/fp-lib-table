@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name kicad-ESP8266)(type KiCad)(uri /home/georgv/github/kicad-ESP8266/ESP8266.pretty)(options "")(descr ""))
+  (lib (name kicad_parts)(type KiCad)(uri /home/georgv/github/kicad_parts/kicad_parts.pretty)(options "")(descr ""))
+)

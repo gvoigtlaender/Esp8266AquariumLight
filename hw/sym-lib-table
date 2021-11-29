@@ -1,0 +1,6 @@
+(sym_lib_table
+  (lib (name ESP8266)(type Legacy)(uri /home/georgv/github/kicad-ESP8266/ESP8266.lib)(options "")(descr ""))
+  (lib (name USB4125-GF-A_REVA)(type Legacy)(uri /home/georgv/github/kicad_parts/USB4125-GF-A_REVA.lib)(options "")(descr ""))
+  (lib (name Various_Parts)(type Legacy)(uri /home/georgv/github/kicad_parts/Various_Parts.lib)(options "")(descr ""))
+  (lib (name PT4115)(type Legacy)(uri /home/georgv/github/kicad_parts/PT4115.lib)(options "")(descr ""))
+)
