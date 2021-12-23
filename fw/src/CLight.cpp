@@ -18,10 +18,6 @@ CLight::CLight()
       m_eLightControlMode(eAutomatic), m_dValueWhiteP(0.0), m_dValueBlueP(0.0),
       m_dValueWhiteP_(0.0), m_dValueBlueP_(0.0) {
 
-  m_pMqtt_LightValueBlue = CreateMqttValue("LightValue.Blue", "0");
-  m_pMqtt_LightValueWhite = CreateMqttValue("LightValue.White", "0");
-  m_pMqtt_TimeToStateChangeS = CreateMqttValue("TimeToStateChange", "0");
-  m_pMqtt_ControlMode = CreateMqttValue("ControlMode", "Automatic");
   pinMode(PIN_BLUE, OUTPUT);
   pinMode(PIN_WHITE, OUTPUT);
   digitalWrite(PIN_BLUE, LOW);
@@ -93,7 +89,19 @@ CLight::CLight()
   LogCStateChain();
 }
 
-bool CLight::setup() { return true; }
+bool CLight::setup() {
+  m_pMqtt_LightValueBlue = CreateMqttValue("LightValue.Blue", "0");
+  m_pMqtt_LightValueWhite = CreateMqttValue("LightValue.White", "0");
+  m_pMqtt_TimeToStateChangeS = CreateMqttValue("TimeToStateChange", "0");
+  m_pMqtt_ControlMode = CreateMqttValue("ControlMode", "Automatic");
+
+  m_pMqtt_CmdAuto = CreateMqttCmd("CmdAuto");
+  m_pMqtt_CmdWhite = CreateMqttCmd("CmdWhite");
+  m_pMqtt_CmdBlue = CreateMqttCmd("CmdBlue");
+  m_pMqtt_CmdOff = CreateMqttCmd("CmdOff");
+
+  return true;
+}
 
 //! task control
 #if CLight_CTRL_VER == 1
@@ -715,6 +723,21 @@ void CLight::SwitchControlMode(E_LIGHTCONTROLMODE eMode) {
   }
   m_eLightControlMode = eMode;
   CLed::AddBlinkTask(CLed::BLINK_1);
+}
+
+void CLight::ControlMqttCmdCallback(CMqttCmd *pCmd, byte *payload,
+                                    unsigned int length) {
+  CControl::ControlMqttCmdCallback(pCmd, payload, length);
+  if (length == 1 && (char)payload[0] == '1') {
+    if (pCmd == m_pMqtt_CmdAuto)
+      SwitchControlMode(eAutomatic);
+    else if (pCmd == m_pMqtt_CmdWhite)
+      SwitchControlMode(eWhite);
+    else if (pCmd == m_pMqtt_CmdBlue)
+      SwitchControlMode(eBlue);
+    else if (pCmd == m_pMqtt_CmdOff)
+      SwitchControlMode(eOff);
+  }
 }
 
 void CLight::OnLightValueChanged(CConfigKeyBase *pKey) {
