@@ -1,4 +1,4 @@
-# Esp8266AquariumLight
+﻿# Esp8266AquariumLight
 ## ESP8266, KSQ-1A, LM2576S, PWM
 
 ## Project goals:
@@ -10,7 +10,7 @@
 * support external button to switch states
 * support external button LED light to indicate states
 * optional ONEWIRE temperature sensor (e.g. DS18B20)
-* optional FAN output (controllable)
+* optional FAN output (switchable)
 
 ## Used items:
 * LM2576S Step-Down (12V -> 5V)
@@ -25,3 +25,9 @@
 ## PCB:
 ![front view](front_iso.png)
 ![back view](back_iso.png)
+
+## Assembly
+![1.jpg](1.jpg)
+![2.jpg](2.jpg)
+![3.jpg](3.jpg)
+
