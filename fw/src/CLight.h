@@ -105,10 +105,13 @@ public:
   CMqttValue *m_pMqtt_TimeToStateChangeS = NULL;
   CMqttValue *m_pMqtt_ControlMode = NULL;
 
+  /*
   CMqttCmd *m_pMqtt_CmdAuto = NULL;
   CMqttCmd *m_pMqtt_CmdWhite = NULL;
   CMqttCmd *m_pMqtt_CmdBlue = NULL;
   CMqttCmd *m_pMqtt_CmdOff = NULL;
+  */
+  CMqttCmd *m_pMqtt_CmdSwitch = NULL;
   void ControlMqttCmdCallback(CMqttCmd *pCmd, byte *payload,
                               unsigned int length) override;
 

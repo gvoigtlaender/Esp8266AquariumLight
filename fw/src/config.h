@@ -2,9 +2,6 @@
 #define SRC_CONFIG_H_
 
 /* Copyright 2018 Georg Voigtlaender gvoigtlaender@googlemail.com */
-const char VERSION_STRING[] = "0.0.21.1";
-const char APPNAME[] = "ESP Aqua Light";
-const char SHORTNAME[] = "ESPAL";
 
 #define USE_DISPLAY 0
 // #define USE_ASYNCTCP 0

@@ -95,319 +95,18 @@ bool CLight::setup() {
   m_pMqtt_TimeToStateChangeS = CreateMqttValue("TimeToStateChange", "0");
   m_pMqtt_ControlMode = CreateMqttValue("ControlMode", "Automatic");
 
+  /*
   m_pMqtt_CmdAuto = CreateMqttCmd("CmdAuto");
   m_pMqtt_CmdWhite = CreateMqttCmd("CmdWhite");
   m_pMqtt_CmdBlue = CreateMqttCmd("CmdBlue");
   m_pMqtt_CmdOff = CreateMqttCmd("CmdOff");
+  */
+  m_pMqtt_CmdSwitch = CreateMqttCmd("CmdSwitch");
 
   return true;
 }
 
 //! task control
-#if CLight_CTRL_VER == 1
-void CLight::control(bool bForce /*= false*/) {
-
-  static unsigned long ulMillis = millis();
-
-  if (m_eLightControlMode != eAutomatic) {
-    const int nManualDelay = 2000;
-    if (millis() > ulMillis + nManualDelay) {
-      CLed::AddBlinkTask(CLed::BLINK_2);
-      ulMillis += nManualDelay;
-    }
-    return;
-  }
-
-  static long lSecondsFadeStart = 0;
-  if (ulMillis > millis())
-    return;
-
-  time_t rawtime;
-  struct tm *timeinfo;
-  time(&rawtime);
-  timeinfo = localtime(&rawtime);
-  long lHours = timeinfo->tm_hour;
-  long lMinutes = lHours * 60 + timeinfo->tm_min;
-  long lSeconds = lMinutes * 60 + timeinfo->tm_sec;
-  // long lTimeToStateChange = 0;
-  bool bBusy = false;
-
-  switch (m_eControlState) {
-  case eInit:
-    ulMillis = millis();
-    _log2(CControl::I, "eInit");
-    SetLightValue(PIN_BLUE, m_pBlueValMinP);
-    SetLightValue(PIN_WHITE, m_pWhiteValMinP);
-
-    _log(I, "WaitForNtp, Current year is %d", timeinfo->tm_year + 1900);
-    m_eControlState = eWaitForNtp;
-    m_sState = "Wait for NTP";
-    break;
-
-  case eWaitForNtp:
-    if (!CControl::ms_bNetworkConnected || timeinfo->tm_year + 1900 < 2010) {
-      break;
-    }
-
-    m_sState = "Check";
-    m_eControlState = eCheck;
-    break;
-
-  case eCheck:
-
-    if (lSeconds > m_pTimeBlueOff->m_lSeconds) {
-      _log(CControl::I, "Change to eSEnd %ld > %ld", lSeconds,
-           m_pTimeBlueOff->m_lSeconds);
-      SetLightValue(PIN_BLUE, m_pBlueValMinP);
-      SetLightValue(PIN_WHITE, m_pWhiteValMinP);
-      m_eControlState = eWaitForNewDay;
-      m_sState = "Wait for new day";
-    } else if (lSeconds > m_pTimeWhiteOff->m_lSeconds) {
-      _log(CControl::I, "Change to eWaitForBlueOff %ld > %ld", lSeconds,
-           m_pTimeWhiteOff->m_lSeconds);
-      SetLightValue(PIN_BLUE, m_pBlueValMaxP);
-      SetLightValue(PIN_WHITE, m_pWhiteValMinP);
-      m_eControlState = eWaitForBlueOff;
-      m_sState = "Wait for BlueOff";
-    } else if (lSeconds > m_pTimeWhiteOn->m_lSeconds) {
-      _log(CControl::I, "Change to eWhiteOnCheck %ld > %ld", lSeconds,
-           m_pTimeWhiteOn->m_lSeconds);
-      SetLightValue(PIN_BLUE, m_pBlueValWhiteMax);
-      SetLightValue(PIN_WHITE, m_pWhiteValMaxP);
-      m_eControlState = eWhiteOnCheck;
-      m_sState = "Wait for WhiteOnCheck";
-    } else if (lSeconds > m_pTimeBlueOn->m_lSeconds) {
-      _log(CControl::I, "Change to eWaitForWhiteOn %ld > %ld", lSeconds,
-           m_pTimeBlueOn->m_lSeconds);
-      SetLightValue(PIN_BLUE, m_pBlueValMaxP);
-      SetLightValue(PIN_WHITE, m_pWhiteValMinP);
-      m_eControlState = eWaitForWhiteOn;
-      m_sState = "Wait for WhiteOn";
-    } else {
-      _log(CControl::I, "Change to eWaitForBlueOn %ld", lSeconds);
-      SetLightValue(PIN_BLUE, m_pBlueValMinP);
-      SetLightValue(PIN_WHITE, m_pWhiteValMinP);
-      m_eControlState = eWaitForBlueOn;
-      m_sState = "Wait for BlueOn";
-    }
-    break;
-
-  case eWaitForBlueOn: // state 1: enable blue in the morning
-    m_nTimeToStateChangeS = m_pTimeBlueOn->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    if (m_nTimeToStateChangeS <= 0) {
-      m_eControlState = eBlueOn;
-      m_sState = "Fade BlueOn";
-      m_FadeStateBlue.m_eState = CFadeState::eStart;
-    }
-    break;
-
-  case eBlueOn:
-    if (Fade("BlueOn", lSeconds, PIN_BLUE, m_pBlueValMinP, m_pBlueValMaxP,
-             timeinfo, m_FadeStateBlue) == STM_BUSY)
-      break;
-    lSecondsFadeStart = lSeconds;
-    m_eControlState = eWaitForWhiteOn;
-    m_sState = "Wait for WhiteOn";
-    break;
-
-  case eWaitForWhiteOn: // state 1: enable blue in the morning
-    m_nTimeToStateChangeS = m_pTimeWhiteOn->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    if (m_nTimeToStateChangeS <= 0) {
-      m_eControlState = eWhiteOn;
-      m_sState = "Fade WhiteOn";
-      m_FadeStateWhite.m_eState = CFadeState::eStart;
-      m_FadeStateBlue.m_eState = CFadeState::eStart;
-    }
-    break;
-
-  case eWhiteOn:
-    m_nTimeToStateChangeS =
-        m_pTimeWhiteOn->m_lSeconds + m_pFadeTimeSec->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    bBusy |= Fade("WhiteOn", lSeconds, PIN_WHITE, m_pWhiteValMinP,
-                  m_pWhiteValMaxP, timeinfo, m_FadeStateWhite) == STM_BUSY;
-    bBusy |= Fade("BlueWhiteOn", lSeconds, PIN_BLUE, m_pBlueValMaxP,
-                  m_pBlueValWhiteMax, timeinfo, m_FadeStateBlue) == STM_BUSY;
-
-    if (bBusy)
-      break;
-    lSecondsFadeStart = lSeconds;
-    m_eControlState = eWhiteOnCheck;
-    break;
-
-  case eWhiteOnCheck:
-
-#if WITH_NOONMODE == 1
-    if (m_pTimeNoonOn->m_lSeconds < lSeconds) {
-      SetLightValue(PIN_BLUE, m_pBlueValMinP);
-      SetLightValue(PIN_WHITE, m_pWhiteValMinP);
-      m_eControlState = eWaitForNoonOn;
-      m_sState = "Wait for NoonOn";
-    } else if (m_pTimeNoonOff->m_lSeconds < lSeconds) {
-      m_eControlState = eWaitForNoonOff;
-      m_sState = "Wait for NoonOff";
-    } else {
-
-#else
-  {
-#endif
-      m_eControlState = eWaitForWhiteOff;
-      m_sState = "Wait for WhiteOff";
-    }
-    _log(I, m_sState.c_str());
-    break;
-
-  case eWaitForNoonOff:
-    m_nTimeToStateChangeS = m_pTimeNoonOff->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    if (m_nTimeToStateChangeS <= 0) {
-      m_eControlState = eNoonOff;
-      m_sState = "Fade NoonOff";
-      m_FadeStateWhite.m_eState = CFadeState::eStart;
-      m_FadeStateBlue.m_eState = CFadeState::eStart;
-      break;
-    }
-    if (m_pCloudEnabled->m_pTValue->m_Value) {
-      if (lSeconds > (lSecondsFadeStart + m_pCloudeCycle->m_lSeconds)) {
-        double d1 = pow(100, m_pCloudChance->m_pTValue->m_Value);
-        double dR = random(1, (int)d1);
-        double d3 = pow(dR, 1.0 / m_pCloudChance->m_pTValue->m_Value);
-        double dValue = dmap(d3, 100, 1, m_pWhiteValMaxP->m_pTValue->m_Value,
-                             m_pWhiteValCloudP->m_pTValue->m_Value);
-        _log(CControl::I, "analogWrite(%d, %.0f) clouds %.0f %.0f %.0f",
-             PIN_WHITE, dValue, d1, dR, d3);
-        SetLightValue(PIN_WHITE, (int)dValue);
-        lSecondsFadeStart = lSeconds;
-      }
-    }
-    break;
-
-  case eNoonOff:
-    m_nTimeToStateChangeS =
-        m_pTimeNoonOff->m_lSeconds + m_pFadeTimeSec->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    bBusy |= Fade("WhiteOff", lSeconds, PIN_WHITE, m_pWhiteValMaxP,
-                  m_pWhiteValMinP, timeinfo, m_FadeStateWhite) == STM_BUSY;
-    bBusy |= Fade("BlueOff", lSeconds, PIN_BLUE, m_pBlueValWhiteMax,
-                  m_pBlueValMinP, timeinfo, m_FadeStateBlue) == STM_BUSY;
-
-    if (bBusy)
-      break;
-    lSecondsFadeStart = lSeconds;
-    m_eControlState = eWaitForNoonOn;
-    m_sState = "Wait for NoonOn";
-    break;
-
-  case eWaitForNoonOn:
-    m_nTimeToStateChangeS = m_pTimeNoonOn->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    if (m_nTimeToStateChangeS <= 0) {
-      m_eControlState = eNoonOn;
-      m_sState = "Fade NoonOn";
-      m_FadeStateWhite.m_eState = CFadeState::eStart;
-      m_FadeStateBlue.m_eState = CFadeState::eStart;
-      break;
-    }
-
-  case eNoonOn:
-    m_nTimeToStateChangeS =
-        m_pTimeNoonOn->m_lSeconds + m_pFadeTimeSec->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    bBusy |= Fade("WhiteOn", lSeconds, PIN_WHITE, m_pWhiteValMinP,
-                  m_pWhiteValMaxP, timeinfo, m_FadeStateWhite) == STM_BUSY;
-    bBusy |= Fade("BlueWhiteOn", lSeconds, PIN_BLUE, m_pBlueValMinP,
-                  m_pBlueValWhiteMax, timeinfo, m_FadeStateBlue) == STM_BUSY;
-
-    if (bBusy)
-      break;
-    lSecondsFadeStart = lSeconds;
-    m_eControlState = eWaitForWhiteOff;
-    m_sState = "Wait for WhiteOff";
-    break;
-
-  case eWaitForWhiteOff: // state 1: enable blue in the morning
-    m_nTimeToStateChangeS = m_pTimeWhiteOff->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    if (m_nTimeToStateChangeS <= 0) {
-      m_eControlState = eWhiteOff;
-      m_sState = "Fade WhiteOff";
-      m_FadeStateWhite.m_eState = CFadeState::eStart;
-      m_FadeStateBlue.m_eState = CFadeState::eStart;
-      break;
-    }
-    if (m_pCloudEnabled->m_pTValue->m_Value) {
-      if (lSeconds > (lSecondsFadeStart + m_pCloudeCycle->m_lSeconds)) {
-        double d1 = pow(100, m_pCloudChance->m_pTValue->m_Value);
-        double dR = random(1, (int)d1);
-        double d3 = pow(dR, 1.0 / m_pCloudChance->m_pTValue->m_Value);
-        double dValue = dmap(d3, 100, 1, m_pWhiteValMaxP->m_pTValue->m_Value,
-                             m_pWhiteValCloudP->m_pTValue->m_Value);
-        _log(CControl::I, "analogWrite(%d, %.0f) clouds %.0f %.0f %.0f",
-             PIN_WHITE, dValue, d1, dR, d3);
-        SetLightValue(PIN_WHITE, (int)dValue);
-        lSecondsFadeStart = lSeconds;
-      }
-    }
-    break;
-
-  case eWhiteOff:
-    m_nTimeToStateChangeS =
-        m_pTimeWhiteOff->m_lSeconds + m_pFadeTimeSec->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    bBusy |= Fade("WhiteOff", lSeconds, PIN_WHITE, m_pWhiteValMaxP,
-                  m_pWhiteValMinP, timeinfo, m_FadeStateWhite) == STM_BUSY;
-    bBusy |= Fade("BlueWhiteOff", lSeconds, PIN_BLUE, m_pBlueValWhiteMax,
-                  m_pBlueValMaxP, timeinfo, m_FadeStateBlue) == STM_BUSY;
-
-    if (bBusy)
-      break;
-    lSecondsFadeStart = lSeconds;
-    m_eControlState = eWaitForBlueOff;
-    m_sState = "Wait for BlueOff";
-    break;
-
-  case eWaitForBlueOff: // state 1: enable blue in the morning
-    m_nTimeToStateChangeS = m_pTimeBlueOff->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    if (m_nTimeToStateChangeS <= 0) {
-      m_eControlState = eBlueOff;
-      m_sState = "Fade BlueOff";
-      m_FadeStateBlue.m_eState = CFadeState::eStart;
-    }
-    break;
-
-  case eBlueOff:
-    m_nTimeToStateChangeS =
-        m_pTimeBlueOff->m_lSeconds + m_pFadeTimeSec->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    if (Fade("BlueOff", lSeconds, PIN_BLUE, m_pBlueValMaxP, m_pBlueValMinP,
-             timeinfo, m_FadeStateBlue) == STM_BUSY)
-      break;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(0));
-    lSecondsFadeStart = lSeconds;
-    m_eControlState = eWaitForNewDay;
-    m_sState = "Wait for new day";
-    break;
-
-  case eWaitForNewDay:
-    m_nTimeToStateChangeS = 24 * 60 * 60 - lSeconds + 10;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
-    if (lSeconds <= 10) {
-      _log2(CControl::I, "Change to eCheck");
-      m_eControlState = eCheck;
-      m_sState = "Check";
-    }
-    break;
-  }
-  ulMillis += 100;
-
-  static uint8 uiModulo = 0;
-  if (++uiModulo % 100 == 0)
-    CLed::AddBlinkTask(CLed::BLINK_1);
-}
-#else
 void CLight::control(bool bForce /*= false*/) {
 
   // static unsigned long ulMillis = millis();
@@ -476,7 +175,8 @@ void CLight::control(bool bForce /*= false*/) {
 
   case eWaitForFirstTime:
     m_nTimeToStateChangeS = m_pCurrentState->m_pTime->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
+    m_pMqtt_TimeToStateChangeS->setValue(
+        TimeToTimeString(m_nTimeToStateChangeS));
     if (m_nTimeToStateChangeS <= 0) {
       m_FadeStateWhite.m_eState = CFadeState::eStart;
       m_FadeStateBlue.m_eState = CFadeState::eStart;
@@ -489,7 +189,8 @@ void CLight::control(bool bForce /*= false*/) {
   case eFade:
     m_nTimeToStateChangeS = m_pCurrentState->m_pTime->m_lSeconds +
                             m_pFadeTimeSec->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
+    m_pMqtt_TimeToStateChangeS->setValue(
+        TimeToTimeString(m_nTimeToStateChangeS));
     bBusy |= Fade("White", lSeconds, PIN_WHITE, m_pWhiteActive,
                   m_pCurrentState->m_pTargetW, timeinfo,
                   m_FadeStateWhite) == STM_BUSY;
@@ -517,7 +218,8 @@ void CLight::control(bool bForce /*= false*/) {
   case eWaitForNextTime:
     m_nTimeToStateChangeS =
         m_pCurrentState->m_pNext->m_pTime->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
+    m_pMqtt_TimeToStateChangeS->setValue(
+        TimeToTimeString(m_nTimeToStateChangeS));
     if (m_nTimeToStateChangeS <= 0) {
       m_FadeStateWhite.m_eState = CFadeState::eStart;
       m_FadeStateBlue.m_eState = CFadeState::eStart;
@@ -544,7 +246,8 @@ void CLight::control(bool bForce /*= false*/) {
 
   case eWaitForNewDay:
     m_nTimeToStateChangeS = 24 * 60 * 60 - lSeconds + 10;
-    m_pMqtt_TimeToStateChangeS->setValue(std::to_string(m_nTimeToStateChangeS));
+    m_pMqtt_TimeToStateChangeS->setValue(
+        TimeToTimeString(m_nTimeToStateChangeS));
     if (lSeconds <= 10) {
       _log2(CControl::I, "Change to eCheck");
       m_eControlState = eCheck;
@@ -558,7 +261,6 @@ void CLight::control(bool bForce /*= false*/) {
   if (++uiModulo % 100 == 0)
     CLed::AddBlinkTask(CLed::BLINK_1);
 }
-#endif
 
 _E_STMRESULT CLight::Fade(const char *szState, long lSeconds, int nPin,
                           CConfigKeyIntSlider *pValStart,
@@ -728,15 +430,37 @@ void CLight::SwitchControlMode(E_LIGHTCONTROLMODE eMode) {
 void CLight::ControlMqttCmdCallback(CMqttCmd *pCmd, byte *payload,
                                     unsigned int length) {
   CControl::ControlMqttCmdCallback(pCmd, payload, length);
-  if (length == 1 && (char)payload[0] == '1') {
-    if (pCmd == m_pMqtt_CmdAuto)
+
+  /*
+  if (length == 1) {
+    if ((char)payload[0] == '1') {
+      if (pCmd == m_pMqtt_CmdAuto)
+        SwitchControlMode(eAutomatic);
+      else if (pCmd == m_pMqtt_CmdWhite)
+        SwitchControlMode(eWhite);
+      else if (pCmd == m_pMqtt_CmdBlue)
+        SwitchControlMode(eBlue);
+      else if (pCmd == m_pMqtt_CmdOff)
+        SwitchControlMode(eOff);
+    }
+    // pCmd->setValue("", true);
+  }
+  */
+  if (pCmd == m_pMqtt_CmdSwitch) {
+    char szCmd[length + 1];
+    strncpy(szCmd, (const char *)payload, length);
+    szCmd[length] = 0x00;
+
+    if (strcmp(szCmd, "auto") == 0)
       SwitchControlMode(eAutomatic);
-    else if (pCmd == m_pMqtt_CmdWhite)
+    else if (strcmp(szCmd, "white") == 0)
       SwitchControlMode(eWhite);
-    else if (pCmd == m_pMqtt_CmdBlue)
+    else if (strcmp(szCmd, "blue") == 0)
       SwitchControlMode(eBlue);
-    else if (pCmd == m_pMqtt_CmdOff)
+    else if (strcmp(szCmd, "off") == 0)
       SwitchControlMode(eOff);
+    else
+      _log(E, "Unknown CmdSwitch value %s", szCmd);
   }
 }
 

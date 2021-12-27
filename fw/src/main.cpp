@@ -3,6 +3,10 @@
  */
 #include <Arduino.h>
 
+char VERSION_STRING[] = "0.0.22.1";
+char APPNAME[] = "ESP Aqua Light";
+char SHORTNAME[] = "ESPAL";
+
 #include <string>
 using std::string;
 #include "config.h"
@@ -305,6 +309,15 @@ void handleStatusUpdate() {
   oStates.push_back(std::make_pair(
       "FS Free", std::to_string(LittleFS_GetFreeSpaceKb()) + string("kB")));
 
+  string sMqttState = "OK";
+  if (!m_pMqtt->isConnected()) {
+    if (m_pMqtt->isRetryConnect())
+      sMqttState = "RETRY";
+    else
+      sMqttState = "FAIL";
+  }
+  oStates.push_back(std::make_pair("MQTT", sMqttState));
+
   CheckFreeHeap();
 
   string sContent = "";
@@ -472,9 +485,6 @@ void setup(void) {
   m_pSyslog->m_pcsDeviceName = m_pDeviceName->m_pTValue->m_Value.c_str();
 
   nMillisLast = millis();
-
-  new CMqttValue("SYSTEM/APPNAME", APPNAME);
-  new CMqttValue("SYSTEM/Version", VERSION_STRING);
 
   if (m_pWifi->m_pWifiSsid->m_pTValue->m_Value.empty() ||
       m_pWifi->m_pWifiPassword->m_pTValue->m_Value.empty()) {
