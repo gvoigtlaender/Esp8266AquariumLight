@@ -3,7 +3,7 @@
  */
 #include <Arduino.h>
 
-char VERSION_STRING[] = "0.0.22.1";
+char VERSION_STRING[] = "0.0.22.2";
 char APPNAME[] = "ESP Aqua Light";
 char SHORTNAME[] = "ESPAL";
 

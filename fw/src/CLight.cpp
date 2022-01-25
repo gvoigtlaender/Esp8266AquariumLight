@@ -237,7 +237,7 @@ void CLight::control(bool bForce /*= false*/) {
                              m_pWhiteValCloudP->m_pTValue->m_Value);
         _log(CControl::I, "analogWrite(%d, %.0f) clouds %.0f %.0f %.0f",
              PIN_WHITE, dValue, d1, dR, d3);
-        SetLightValue(PIN_WHITE, (int)dValue);
+        SetLightValue(PIN_WHITE, dValue);
         lSecondsFadeStart = lSeconds;
       }
     }
@@ -291,7 +291,7 @@ _E_STMRESULT CLight::Fade(const char *szState, long lSeconds, int nPin,
                   fadestate.m_lSecondsStart + m_pFadeTimeSec->m_lSeconds,
                   pValStart->m_pTValue->m_Value, pValEnd->m_pTValue->m_Value);
     // _log(CControl::I, "analogWrite(%d, %.0f)", nPin, dValue);
-    SetLightValue(nPin, (int)dValue);
+    SetLightValue(nPin, dValue);
     if (lSeconds >= fadestate.m_lSecondsStart + m_pFadeTimeSec->m_lSeconds) {
       SetLightValue(nPin, pValEnd);
       _log2(CControl::I, "Fade done");
