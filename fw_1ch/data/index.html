@@ -1,0 +1,65 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
+    <script language="javascript" type="text/javascript" src="/javascript.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+    <script language="javascript" type="text/javascript" src="mainpage.js"></script>
+    <title id=title>---</title>
+</head>
+
+<body>
+    <noscript>To use ESP Aqua Light, please enable JavaScript<br></noscript>
+    <div style='text-align:center;display:inline-block;color:#eaeaea;min-width:340px;'>
+        <h1 id=title2>---</h1>
+        <h2 id=devicename>---</h2>
+        <fieldset>
+            <legend>Light Mode</legend>
+            <button onclick='sw("o=0");' class='button'>Automatic</button>
+            <p>
+            <p>
+            <div id=but3d style="display: block;"></div>
+            <button onclick='sw("o=2");' class='button'>White</button>
+            <p>
+                <button onclick='sw("o=1");' class='button'>Moon</button>
+            <p>
+                <button onclick='sw("o=3");' class='button'>Off</button>
+            <p>
+        </fieldset>
+        <fieldset>
+            <legend>Status</legend>
+            <div id="status"> ... loading </div>
+        </fieldset>
+        <fieldset>
+            <legend>Administration</legend>
+            <p>
+            <form id=but3 style="display: block;" action='configure' method='get'>
+                <button>Configuration</button>
+            </form>
+            </p>
+            <p>
+            <form id=but4 style="display: block;" action='in' method='get'>
+            </form>
+            </p>
+            <p>
+            <form id=but5 style="display: block;" action='update' method='get'>
+                <button>Firmware Upgrade</button>
+            </form>
+            </p>
+            <p>
+            <form id=but14 style="display: block;" action='cs' method='get'>
+            </form>
+            </p>
+            <p>
+            <form id=but0 style="display: block;" action='.' method='get' onsubmit='return confirm("Confirm Restart");'>
+                <button name='rst' class='button bred'>Restart</button>
+            </form>
+            </p>
+    </div>
+    </fieldset>
+</body>
+
+</html>

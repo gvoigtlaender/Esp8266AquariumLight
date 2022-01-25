@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
+    <script language="javascript" type="text/javascript" src="/javascript.js"></script>
+    <script language="javascript" type="text/javascript" src="/updatepage.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+    <title>---</title>
+</head>
+
+<body>
+    <div style='text-align:left;display:inline-block;color:#eaeaea;min-width:340px;'>
+        <div style='text-align:center;color:#eaeaea;'>
+            <h1 id=title></h1>
+            <h1 id=devicename></h1>
+            <div id=but3d style="display: block;"></div>
+            <p>
+            <form id=but3d style="display: block;" action='../' method='get'>
+                <button>Main</button>
+            </form>
+            <fieldset>
+                <legend>Firmware:</legend>
+                <form method='POST' action='' enctype='multipart/form-data'>
+                    <input type='file' accept='.bin,.bin.gz' name='firmware'>
+                    <input type='submit' value='Update Firmware'>
+                </form>
+            </fieldset>
+            <fieldset>
+                <legend>FS:</legend>
+                <form method='POST' action='upload' enctype='multipart/form-data'>
+                    <input type='file' accept='.*' name='file'>
+                    <input type='submit' value='Upload File'>
+                </form>
+                <p>
+                <form method='POST' action='delete'>
+                    <table id=filelist>
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+</body>
+
+</html>

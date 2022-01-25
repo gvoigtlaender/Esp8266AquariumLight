@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "PlatformIO",
+			"task": "Monitor (esp12e)",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Monitor (esp12e)"
+		}
+	]
+}
