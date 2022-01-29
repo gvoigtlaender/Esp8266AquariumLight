@@ -161,13 +161,14 @@ void CLight_1Ch::control(bool bForce /*= false*/) {
     break;
 
   case eFade:
-    m_nTimeToStateChangeS = m_pCurrentState->m_pTime->m_lSeconds +
-                            m_pFadeTimeSec->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(
-        TimeToTimeString(m_nTimeToStateChangeS));
     bBusy |= Fade("White", lSeconds, PIN_WHITE, m_pWhiteActive,
                   m_pCurrentState->m_pTargetW, timeinfo,
                   m_FadeStateWhite) == STM_BUSY;
+    m_nTimeToStateChangeS = m_FadeStateWhite.m_lSecondsStart +
+                            m_pFadeTimeSec->m_lSeconds - lSeconds;
+    m_pMqtt_TimeToStateChangeS->setValue(
+        TimeToTimeString(m_nTimeToStateChangeS));
+
     if (bBusy)
       break;
 
