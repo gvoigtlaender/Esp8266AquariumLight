@@ -100,6 +100,9 @@ public:
   CConfigKeyTimeString *m_pTimeNoonOff = NULL;
   CConfigKeyTimeString *m_pTimeNoonOn = NULL;
 
+  //! Button handling
+  CConfigKey<bool> *m_pButtonOffAutoMode = NULL;
+
   CMqttValue *m_pMqtt_LightValueBlue = NULL;
   CMqttValue *m_pMqtt_LightValueWhite = NULL;
   CMqttValue *m_pMqtt_TimeToStateChangeS = NULL;

@@ -67,6 +67,8 @@ CLight::CLight()
   m_pTimeNoonOn = CreateConfigKeyTimeString("NoonMode", "NoonOn", "15:00");
 #endif
 
+  m_pButtonOffAutoMode = CreateConfigKey<bool>("Light", "ButtonOffAuto", false);
+
   m_pMorning_BlueOn = new CState("Morning_BlueOn", m_pTimeBlueOn,
                                  m_pWhiteValMinP, m_pBlueValMaxP);
   m_pMorning_WhiteOn = new CState("Morning_WhiteOn", m_pTimeWhiteOn,
@@ -187,16 +189,16 @@ void CLight::control(bool bForce /*= false*/) {
     break;
 
   case eFade:
-    m_nTimeToStateChangeS = m_pCurrentState->m_pTime->m_lSeconds +
-                            m_pFadeTimeSec->m_lSeconds - lSeconds;
-    m_pMqtt_TimeToStateChangeS->setValue(
-        TimeToTimeString(m_nTimeToStateChangeS));
     bBusy |= Fade("White", lSeconds, PIN_WHITE, m_pWhiteActive,
                   m_pCurrentState->m_pTargetW, timeinfo,
                   m_FadeStateWhite) == STM_BUSY;
     bBusy |= Fade("Blue", lSeconds, PIN_BLUE, m_pBlueActive,
                   m_pCurrentState->m_pTargetB, timeinfo,
                   m_FadeStateBlue) == STM_BUSY;
+    m_nTimeToStateChangeS = m_FadeStateWhite.m_lSecondsStart +
+                            m_pFadeTimeSec->m_lSeconds - lSeconds;
+    m_pMqtt_TimeToStateChangeS->setValue(
+        TimeToTimeString(m_nTimeToStateChangeS));
 
     if (bBusy)
       break;
@@ -376,11 +378,11 @@ void CLight::SetLightValue(int nPin, double dValueP) {
 void CLight::OnButtonClick() {
   switch (m_eLightControlMode) {
   case eAutomatic:
-    SwitchControlMode(eBlue);
+    SwitchControlMode(m_pButtonOffAutoMode->GetValue() ? eOff : eBlue);
     break;
 
   case eBlue:
-    SwitchControlMode(eWhite);
+    SwitchControlMode(m_pButtonOffAutoMode->GetValue() ? eOff : eWhite);
     break;
 
   case eWhite:
