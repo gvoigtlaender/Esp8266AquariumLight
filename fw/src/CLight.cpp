@@ -4,8 +4,6 @@
 #include <config.h>
 #include <ctime>
 
-#define WITH_NOONMODE 1
-
 void OnLightValueChanged(void *pObject, CConfigKeyBase *pKey) {
   static_cast<CLight *>(pObject)->OnLightValueChanged(pKey);
 }
@@ -46,11 +44,11 @@ CLight::CLight()
   m_pBlueValWhiteMax->SetOnChangedCallback(::OnLightValueChanged, this);
 
   //! DAYLIGHT CONTROL
-  m_pFadeTimeSec = CreateConfigKeyTimeString("Timing", "FadeTime", "5:00");
-  m_pTimeBlueOn = CreateConfigKeyTimeString("Timing", "BlueOn", "07:00");
-  m_pTimeWhiteOn = CreateConfigKeyTimeString("Timing", "WhiteOn", "08:00");
-  m_pTimeWhiteOff = CreateConfigKeyTimeString("Timing", "WhiteOff", "18:00");
-  m_pTimeBlueOff = CreateConfigKeyTimeString("Timing", "BlueOff", "22:00");
+  m_pFadeTimeSec = CreateConfigKeyTimeString("Timing", "FadeTime", "00:05:00");
+  m_pTimeBlueOn = CreateConfigKeyTimeString("Timing", "BlueOn", "06:30:00");
+  m_pTimeWhiteOn = CreateConfigKeyTimeString("Timing", "WhiteOn", "08:00:00");
+  m_pTimeWhiteOff = CreateConfigKeyTimeString("Timing", "WhiteOff", "18:00:00");
+  m_pTimeBlueOff = CreateConfigKeyTimeString("Timing", "BlueOff", "22:00:00");
 
   //! CLOUD MODE
   m_pCloudEnabled = CreateConfigKey<bool>("Clouds", "Enabled", true);
@@ -73,19 +71,25 @@ CLight::CLight()
                                  m_pWhiteValMinP, m_pBlueValMaxP);
   m_pMorning_WhiteOn = new CState("Morning_WhiteOn", m_pTimeWhiteOn,
                                   m_pWhiteValMaxP, m_pBlueValWhiteMax, true);
+#if WITH_NOONMODE == 1
   m_pNoon_AllOff = new CState("Noon_AllOff", m_pTimeNoonOff, m_pWhiteValMinP,
                               m_pBlueValMinP);
   m_pNoon_AllOn = new CState("Noon_AllOn", m_pTimeNoonOn, m_pWhiteValMaxP,
                              m_pBlueValWhiteMax, true);
+#endif
   m_pEvening_WhiteOff = new CState("Evening_WhiteOff", m_pTimeWhiteOff,
                                    m_pWhiteValMinP, m_pBlueValMaxP);
   m_pEvening_BlueOff = new CState("Evening_BlueOff", m_pTimeBlueOff,
                                   m_pWhiteValMinP, m_pBlueValMinP);
 
   m_pMorning_BlueOn->SetNext(m_pMorning_WhiteOn);
+#if WITH_NOONMODE == 1
   m_pMorning_WhiteOn->SetNext(m_pNoon_AllOff);
   m_pNoon_AllOff->SetNext(m_pNoon_AllOn);
   m_pNoon_AllOn->SetNext(m_pEvening_WhiteOff);
+#else
+  m_pMorning_WhiteOn->SetNext(m_pEvening_WhiteOff);
+#endif
   m_pEvening_WhiteOff->SetNext(m_pEvening_BlueOff);
 
   LogCStateChain();
@@ -271,6 +275,7 @@ _E_STMRESULT CLight::Fade(const char *szState, long lSeconds, int nPin,
   double dValue = 0.0;
   switch (fadestate.m_eState) {
   case CFadeState::eStart:
+    fadestate.m_lSecondsStart = lSeconds;
     if (pValStart == pValEnd) {
       fadestate.m_eState = CFadeState::eDone;
       _log(I, "Abort fade, already target value");
@@ -284,7 +289,6 @@ _E_STMRESULT CLight::Fade(const char *szState, long lSeconds, int nPin,
            szState, m_pFadeTimeSec->m_lSeconds, pValStart->m_pTValue->m_Value,
            pValEnd->m_pTValue->m_Value, mbstr);
     }
-    fadestate.m_lSecondsStart = lSeconds;
     fadestate.m_eState = CFadeState::eProgress;
 
   case CFadeState::eProgress:
@@ -482,6 +486,7 @@ void CLight::OnLightValueChanged(CConfigKeyBase *pKey) {
 }
 
 void CLight::OnEnableChanged(CConfigKeyBase *pKey) {
+#if WITH_NOONMODE == 1
   if (pKey == m_pNoonOff) {
     if (m_pNoonOff->GetValue()) {
       _log(I, "CLight::OnEnableChanged: NoonMode = true");
@@ -496,6 +501,7 @@ void CLight::OnEnableChanged(CConfigKeyBase *pKey) {
       m_sState = "Wait for " + string(m_pCurrentState->m_pNext->m_pcsName);
     LogCStateChain();
   }
+#endif
 }
 
 void CLight::LogCStateChain() {

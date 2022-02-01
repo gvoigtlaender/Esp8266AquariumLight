@@ -9,6 +9,7 @@
 #include <list>
 
 #define CLight_CTRL_VER 2
+#define WITH_NOONMODE 0
 
 class CLight : public CControl {
   class CFadeState {
@@ -96,9 +97,11 @@ public:
   CConfigKeyTimeString *m_pCloudeCycle = NULL;
 
   //! NOON OFF MODE
+#if WITH_NOONMODE == 1
   CConfigKey<bool> *m_pNoonOff = NULL;
   CConfigKeyTimeString *m_pTimeNoonOff = NULL;
   CConfigKeyTimeString *m_pTimeNoonOn = NULL;
+#endif
 
   //! Button handling
   CConfigKey<bool> *m_pButtonOffAutoMode = NULL;
